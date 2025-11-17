@@ -87,6 +87,7 @@ uperf_usage(char *prog)
 	"\t-e\t\t Collect default CPU counters for flowops [-f assumed]\n"
 	"\t-E <ev1,ev2>\t Collect CPU counters for flowops [-f assumed]\n"
 	"\t-a\t\t Collect all statistics\n"
+	"\t-H\t Histogram (percentiles for response times)\n"
 	"\t-X <file>\t Collect response times\n"
 	"\t-i <interval>\t Collect throughput every <interval>\n"
 	"\t-P <port>\t Set the master port (defaults to 20000)\n"
@@ -163,7 +164,7 @@ init_options(int argc, char **argv)
 	options.control_proto = PROTOCOL_TCP;
 	oserver = oclient = ofile = 0;
 
-	while ((ch = getopt(argc, argv, "E:epTgtfknasm:X:i:P:S:RvVh")) != EOF) {
+	while ((ch = getopt(argc, argv, "E:HepTgtfknasm:X:i:P:S:RvVh")) != EOF) {
 		switch (ch) {
 #ifdef USE_CPC
 		case 'E':
@@ -245,6 +246,9 @@ init_options(int argc, char **argv)
 			ofile++;
 			break;
 #endif
+		case 'H':
+			options.copt |= HISTOGRAM_STATS;
+			break;
 		case 'X':
 			options.copt |= HISTORY_STATS;
 			if (optarg) {

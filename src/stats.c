@@ -153,6 +153,7 @@ stats_update(int type, strand_t *s, newstats_t *stats, uint64_t size,
 	case FLOWOP_BEGIN:
 		if (ENABLED_FLOWOP_STATS(options) ||
 		    ENABLED_GROUP_STATS(options) ||
+		    ENABLED_HISTOGRAM_STATS(options) ||
 		    ENABLED_HISTORY_STATS(options)) {
 			return (newstat_begin(s, stats, 0, 0));
 		}
@@ -164,11 +165,16 @@ stats_update(int type, strand_t *s, newstats_t *stats, uint64_t size,
 
 		if (ENABLED_FLOWOP_STATS(options) ||
 		    ENABLED_GROUP_STATS(options) ||
-		    ENABLED_HISTORY_STATS(options)) {
+		    ENABLED_HISTORY_STATS(options) ||
+		    ENABLED_HISTOGRAM_STATS(options)) {
 			int err = newstat_end(s, stats, size, count);
 			if (ENABLED_HISTORY_STATS(options)) {
 				history_record(s, NSTAT_FLOWOP, stats->end_time,
 				    stats->end_time - stats->time_used_start);
+			}
+			if (ENABLED_HISTOGRAM_STATS(options)) {
+				uint64_t _delta = stats->end_time - stats->time_used_start;
+				histogram_record(s, _delta);
 			}
 			return (err);
 		}
@@ -260,4 +266,110 @@ history_record(strand_t *s, uint32_t type, uint64_t etime,
 		flush_history(s);
 	}
 	s->history[s->hsize++] = h;
+}
+
+void
+histogram_init(strand_t *s)
+{
+	s->histogram = (histogram_t *)calloc(1, sizeof (histogram_t));
+    	s->histogram->max_bucket_ns = 100000;
+    	s->histogram->bucket_size_ns = 10000;
+   	s->histogram->num_buckets = 
+		(uint32_t) (s->histogram->max_bucket_ns / s->histogram->bucket_size_ns) + 1;
+    	s->histogram->buckets = calloc(s->histogram->num_buckets, sizeof(uint64_t));
+    	s->histogram->min_val = 1e9;
+    	s->histogram->max_val = 0;
+    	s->histogram->sum_val = 0;
+    	s->histogram->total_count = 0;
+    	s->histogram->overflow_count = 0;
+}
+
+static uint64_t
+get_percentile(histogram_t *h, double percentile)
+{
+    uint64_t count_needed = (uint64_t)(h->total_count * percentile);
+    uint64_t cumulative_count = 0;
+
+    for (uint32_t i = 0; i < h->num_buckets; i++) {
+        cumulative_count += h->buckets[i];
+        if (cumulative_count >= count_needed) {
+            /* Return the latency at the *top* of this bucket */
+            return (uint64_t) ((i + 1) * h->bucket_size_ns / 1e3);
+        }
+    }
+    return (uint64_t) h->max_val / 1e3; /* Return max if overflow */
+}
+
+void
+histogram_summary(strand_t *s)
+{
+	int last_empty = 0;
+	histogram_t *h = s->histogram;
+	if (h == NULL) {
+                printf("histogram is NULL\n");
+                return;
+        }
+	printf("\n");
+	printf("  Histogram Summary:\n");
+    	printf("    Samples:  %"PRIu64"\n", h->total_count);
+    	printf("    Minimum:  %.2f (us)\n", (double) (h->min_val / 1e3));
+    	printf("    Maximum:  %.2f (us)\n", (double) (h->max_val / 1e3));
+    	printf("    Average:  %.2f (us)\n", (double) (h->sum_val / h->total_count) / 1e3);
+    
+    	printf("    Percentiles (us):\n");
+    	printf("      50th:     %lu (Median)\n", get_percentile(h, 0.50));
+    	printf("      90th:     %lu\n", get_percentile(h, 0.90));
+    	printf("      95th:     %lu\n", get_percentile(h, 0.95));
+    	printf("      99th:     %lu\n", get_percentile(h, 0.99));
+    	printf("      99.9th:   %lu\n", get_percentile(h, 0.999));
+    	printf("      99.99th:  %lu\n", get_percentile(h, 0.9999));
+
+	printf("    Buckets (us):\n");
+    	printf("      %"PRIu64"-%"PRIu64": %"PRIu64" (overflows)\n",
+               (uint64_t) (h->bucket_size_ns * h->num_buckets / 1e3),
+               (uint64_t) (h->max_val / 1e3), h->overflow_count);
+	printf("      ...\n");
+	uint32_t max_bucket_idx = h->num_buckets - 1;
+	for (uint32_t i = max_bucket_idx; i >= 0; i--) {
+		if (h->buckets[i] > 0) {
+            		uint32_t bucket_start = (uint64_t) i * h->bucket_size_ns / 1e3;
+            		uint32_t bucket_end = (uint64_t) (i + 1) * h->bucket_size_ns / 1e3;
+		        printf("      %"PRIu64"-%"PRIu64": %"PRIu64"\n",
+				bucket_start, bucket_end, h->buckets[i]);
+			last_empty = 0;
+        	}
+		else {
+			if (last_empty == 0) {
+				printf("      ...\n");
+			}
+			last_empty = 1;
+		}
+		if (i == 0) {
+			break;
+		}
+    	}
+}
+
+void
+histogram_record(strand_t *s, uint64_t delta)
+{
+	s->histogram->total_count++;
+	s->histogram->sum_val += delta;
+	s->histogram->min_val = MIN(s->histogram->min_val, delta);
+    	s->histogram->max_val = MAX(s->histogram->max_val, delta);
+
+	if (delta >= s->histogram->max_bucket_ns) {
+        	s->histogram->overflow_count++;
+    	} else {
+        	uint32_t index = (uint32_t)(delta / s->histogram->bucket_size_ns);
+            	s->histogram->buckets[index]++;
+        }
+}
+
+void
+histogram_cleanup(strand_t *s)
+{
+	histogram_t *h = s->histogram;
+        free(h->buckets);
+        free(h);
 }
