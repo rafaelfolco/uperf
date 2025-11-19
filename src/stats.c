@@ -272,8 +272,8 @@ void
 histogram_init(strand_t *s)
 {
 	s->histogram = (histogram_t *)calloc(1, sizeof (histogram_t));
-    	s->histogram->max_bucket_ns = 100000;
-    	s->histogram->bucket_size_ns = 10000;
+    	s->histogram->max_bucket_ns = options.max_bucket;
+    	s->histogram->bucket_size_ns = options.bucket_len;
    	s->histogram->num_buckets = 
 		(uint32_t) (s->histogram->max_bucket_ns / s->histogram->bucket_size_ns) + 1;
     	s->histogram->buckets = calloc(s->histogram->num_buckets, sizeof(uint64_t));
@@ -303,44 +303,45 @@ get_percentile(histogram_t *h, double percentile)
 void
 histogram_summary(strand_t *s)
 {
+	if (DISABLED_STATS(options))
+		return;
+
 	int last_empty = 0;
 	histogram_t *h = s->histogram;
 	if (h == NULL) {
                 printf("histogram is NULL\n");
                 return;
         }
-	printf("\n");
-	printf("  Histogram Summary:\n");
-    	printf("    Samples:  %"PRIu64"\n", h->total_count);
-    	printf("    Minimum:  %.2f (us)\n", (double) (h->min_val / 1e3));
-    	printf("    Maximum:  %.2f (us)\n", (double) (h->max_val / 1e3));
-    	printf("    Average:  %.2f (us)\n", (double) (h->sum_val / h->total_count) / 1e3);
-    
-    	printf("    Percentiles (us):\n");
-    	printf("      50th:     %lu (Median)\n", get_percentile(h, 0.50));
-    	printf("      90th:     %lu\n", get_percentile(h, 0.90));
-    	printf("      95th:     %lu\n", get_percentile(h, 0.95));
-    	printf("      99th:     %lu\n", get_percentile(h, 0.99));
-    	printf("      99.9th:   %lu\n", get_percentile(h, 0.999));
-    	printf("      99.99th:  %lu\n", get_percentile(h, 0.9999));
+	fprintf(options.histogram_fd, "Histogram Summary:\n");
+    	fprintf(options.histogram_fd, "  Samples   :  %"PRIu64"\n", h->total_count);
+    	fprintf(options.histogram_fd, "  Minimum   :  %.2f (us)\n", (double) (h->min_val / 1e3));
+    	fprintf(options.histogram_fd, "  Maximum   :  %.2f (us)\n", (double) (h->max_val / 1e3));
+    	fprintf(options.histogram_fd, "  Average   :  %.2f (us)\n", (double) (h->sum_val / h->total_count) / 1e3);
+    	fprintf(options.histogram_fd, "  Percentiles (us):\n");
+    	fprintf(options.histogram_fd, "    50th    :  %lu (Median)\n", get_percentile(h, 0.50));
+    	fprintf(options.histogram_fd, "    90th    :  %lu\n", get_percentile(h, 0.90));
+    	fprintf(options.histogram_fd, "    95th    :  %lu\n", get_percentile(h, 0.95));
+    	fprintf(options.histogram_fd, "    99th    :  %lu\n", get_percentile(h, 0.99));
+    	fprintf(options.histogram_fd, "    99.9th  :  %lu\n", get_percentile(h, 0.999));
+    	fprintf(options.histogram_fd, "    99.99th :  %lu\n", get_percentile(h, 0.9999));
 
-	printf("    Buckets (us):\n");
-    	printf("      %"PRIu64"-%"PRIu64": %"PRIu64" (overflows)\n",
+	fprintf(options.histogram_fd, "  Buckets (us):\n");
+    	fprintf(options.histogram_fd, "    %"PRIu64"-%"PRIu64": %"PRIu64" (overflows)\n",
                (uint64_t) (h->bucket_size_ns * h->num_buckets / 1e3),
                (uint64_t) (h->max_val / 1e3), h->overflow_count);
-	printf("      ...\n");
+	fprintf(options.histogram_fd, "    ...\n");
 	uint32_t max_bucket_idx = h->num_buckets - 1;
 	for (uint32_t i = max_bucket_idx; i >= 0; i--) {
 		if (h->buckets[i] > 0) {
             		uint32_t bucket_start = (uint64_t) i * h->bucket_size_ns / 1e3;
             		uint32_t bucket_end = (uint64_t) (i + 1) * h->bucket_size_ns / 1e3;
-		        printf("      %"PRIu64"-%"PRIu64": %"PRIu64"\n",
+		        fprintf(options.histogram_fd, "    %"PRIu64"-%"PRIu64": %"PRIu64"\n",
 				bucket_start, bucket_end, h->buckets[i]);
 			last_empty = 0;
         	}
 		else {
 			if (last_empty == 0) {
-				printf("      ...\n");
+				fprintf(options.histogram_fd, "    ...\n");
 			}
 			last_empty = 1;
 		}

@@ -87,7 +87,9 @@ uperf_usage(char *prog)
 	"\t-e\t\t Collect default CPU counters for flowops [-f assumed]\n"
 	"\t-E <ev1,ev2>\t Collect CPU counters for flowops [-f assumed]\n"
 	"\t-a\t\t Collect all statistics\n"
-	"\t-H\t Histogram (percentiles for response times)\n"
+	"\t-H <file>\t Histogram (percentiles for response times)\n"
+	"\t-b <bucket-len>\t Bucket length in us (defaults to 1 us)\n"
+	"\t-B <max-bucket>\t Max bucket in us (defaults to 100 us)\n"
 	"\t-X <file>\t Collect response times\n"
 	"\t-i <interval>\t Collect throughput every <interval>\n"
 	"\t-P <port>\t Set the master port (defaults to 20000)\n"
@@ -164,7 +166,10 @@ init_options(int argc, char **argv)
 	options.control_proto = PROTOCOL_TCP;
 	oserver = oclient = ofile = 0;
 
-	while ((ch = getopt(argc, argv, "E:HepTgtfknasm:X:i:P:S:RvVh")) != EOF) {
+	options.bucket_len = 1000;     /* Default: 1us Bucket length */
+	options.max_bucket = 100000;   /* Default: 100us Max bucket */
+
+	while ((ch = getopt(argc, argv, "E:epTgtfknasm:H:B:b:X:i:P:S:RvVh")) != EOF) {
 		switch (ch) {
 #ifdef USE_CPC
 		case 'E':
@@ -248,6 +253,37 @@ init_options(int argc, char **argv)
 #endif
 		case 'H':
 			options.copt |= HISTOGRAM_STATS;
+                        if (optarg) {
+                                (void) strlcpy(options.hfile, optarg,
+                                        sizeof (options.hfile));
+                                options.histogram_fd = fopen(optarg, "w");
+                                if (options.histogram_fd == NULL)
+                                        uperf_fatal("Cannot open histogram file\n");
+                        } else {
+                                uperf_fatal("Please specify histogram file \n");
+                        }
+			break;
+		case 'b':
+                        if (optarg) {
+                                options.bucket_len = string_to_int(optarg) * 1e3;
+                                if ((options.bucket_len % 1000 != 0) ||
+				    (options.max_bucket < options.bucket_len))
+                                        uperf_fatal("Invalid bucket length: %s (us)\n",
+                                            optarg);
+                        } else {
+                                uperf_fatal("Please specify bucket length\n");
+                        }
+			break;
+		case 'B':
+                        if (optarg) {
+                                options.max_bucket = string_to_int(optarg) * 1e3;
+                                if ((options.max_bucket % 1000 != 0) ||
+				    (options.max_bucket < options.bucket_len))
+                                        uperf_fatal("Invalid max bucket: %s (us)\n",
+                                            optarg);
+                        } else {
+                                uperf_fatal("Please specify max bucket\n");
+                        }
 			break;
 		case 'X':
 			options.copt |= HISTORY_STATS;

@@ -629,10 +629,14 @@ master(workorder_t *w)
 			print_difference(local, gtotal);
 		}
 	}
+
 	uperf_log_flush();
 
 	if (ENABLED_HISTORY_STATS(options)) {
 		(void) fclose(options.history_fd);
+	}
+	if (ENABLED_HISTOGRAM_STATS(options)) {
+		(void) fclose(options.histogram_fd);
 	}
 	/* Cleanup */
 	if (shm->global_error != 0) {

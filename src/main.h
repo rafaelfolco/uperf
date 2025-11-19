@@ -67,12 +67,16 @@ typedef struct options {
 	int	bitorbyte;
 	int	xanadu_print;
 	FILE	*history_fd;
+	FILE	*histogram_fd;
 	char	xfile[PATH_MAX];
+	char	hfile[PATH_MAX];
 	char	*ev1;
 	char	*ev2;
 	uint32_t copt;	/* Collect options */
 	uint64_t interval;	/* collect stats every interval msecs */
 	proto_type_t control_proto;
+	uint64_t bucket_len;	/* histogram bucket length (in us) */
+	uint64_t max_bucket;	/* max histogram bucket (in us) */
 }options_t;
 
 #endif /* __MAIN_H */
