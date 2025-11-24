@@ -77,6 +77,7 @@ typedef struct options {
 	proto_type_t control_proto;
 	uint64_t bucket_len;	/* histogram bucket length (in us) */
 	uint64_t max_bucket;	/* max histogram bucket (in us) */
+	unsigned int main_thread;	/* cpu main thread */
 }options_t;
 
 #endif /* __MAIN_H */

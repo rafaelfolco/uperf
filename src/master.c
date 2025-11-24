@@ -39,6 +39,8 @@
 #include <poll.h>
 #endif /* HAVE_POLL_H */
 
+#include <sched.h>
+
 #ifdef HAVE_SYS_POLL_H
 #include <sys/poll.h>
 #endif /* HAVE_SYS_POLL_H */
@@ -68,10 +70,32 @@
 #define	UPERF_GOODBYE_TIMEOUT	15000	/* 15 seconds */
 #define	MAX_POLL_SLAVES_TIMEOUT	1000	/* 1 second */
 
+#define P 1
+
 extern options_t options;
 
 static protocol_t *slaves[MAXSLAVES];
 static int no_slaves;
+
+static int
+move_to_core(int core_i)
+{
+        cpu_set_t cpus;
+
+        CPU_ZERO(&cpus);
+        CPU_SET(core_i, &cpus);
+        return sched_setaffinity(0, sizeof(cpus), &cpus);
+}
+
+static int
+set_fifo_prio(int prio)
+{
+        struct sched_param param;
+
+        memset(&param, 0, sizeof(param));
+        param.sched_priority = prio;
+        return sched_setscheduler(0, SCHED_FIFO, &param);
+}
 
 static int
 say_goodbye(goodbye_stat_t *total, protocol_t *p, int timeout)
@@ -287,8 +311,10 @@ master_poll(uperf_shm_t *shm)
 		if (BARRIER_REACHED(curr_bar)) { /* goto Next Txn */
 			if (ENABLED_STATS(options)) {
 				if (curr_txn != 0) {
+#ifdef P
 					print_progress(shm, prev_ns);
 					(void) printf("\n");
+#endif
 				}
 				update_aggr_stat(shm);
 				(void) memcpy(&prev_ns, AGG_STAT(shm),
@@ -314,14 +340,18 @@ master_poll(uperf_shm_t *shm)
 		shm->current_time = GETHRTIME();
 		if (ENABLED_STATS(options) &&
 		    (time_to_print <= shm->current_time)) {
+#ifdef P
 			print_progress(shm, prev_ns);
+#endif
 			time_to_print = shm->current_time
 			    + options.interval * 1.0e+6;
 		}
 	}
 	while (shm->global_error == 0 && shm->finished == 0) {
 		shm_process_callouts(shm);
+#ifdef P
 		print_progress(shm, prev_ns);
+#endif
 		(void) poll(NULL, 0, 100);
 	}
 	if (ENABLED_STATS(options)) {
@@ -478,6 +508,7 @@ spawn_strands_group(uperf_shm_t *shm, group_t *gp, int id)
 				uperf_error("pthread_create failed\n");
 				return (1);
 			}
+			move_to_core(options.main_thread);
 		}
 	}
 	return (0);

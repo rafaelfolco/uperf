@@ -90,6 +90,7 @@ uperf_usage(char *prog)
 	"\t-H <file>\t Histogram (percentiles for response times)\n"
 	"\t-b <bucket-len>\t Bucket length in us (defaults to 1 us)\n"
 	"\t-B <max-bucket>\t Max bucket in us (defaults to 100 us)\n"
+	"\t-M <main-thread-cpu>\t Set main thread cpu affinity\n"
 	"\t-X <file>\t Collect response times\n"
 	"\t-i <interval>\t Collect throughput every <interval>\n"
 	"\t-P <port>\t Set the master port (defaults to 20000)\n"
@@ -98,6 +99,22 @@ uperf_usage(char *prog)
 	"\t-V\t\t Version\n"
 	"\t-h\t\t Print usage\n"
 	"\nMore information at http://www.uperf.org\n");
+}
+
+int is_cpu_allowed(int cpu_id) {
+    cpu_set_t set;
+    CPU_ZERO(&set);
+
+    /* Gets affinity mask from the calling process (pid 0) */
+    if (sched_getaffinity(0, sizeof(set), &set) == -1) {
+        perror("sched_getaffinity failed");
+        return -1;
+    }
+
+    if (CPU_ISSET(cpu_id, &set)) {
+        return 1;
+    }
+    return 0;
 }
 
 static char *proto[] = {
@@ -169,7 +186,7 @@ init_options(int argc, char **argv)
 	options.bucket_len = 1000;     /* Default: 1us Bucket length */
 	options.max_bucket = 100000;   /* Default: 100us Max bucket */
 
-	while ((ch = getopt(argc, argv, "E:epTgtfknasm:H:B:b:X:i:P:S:RvVh")) != EOF) {
+	while ((ch = getopt(argc, argv, "E:epTgtfknasm:M:H:B:b:X:i:P:S:RvVh")) != EOF) {
 		switch (ch) {
 #ifdef USE_CPC
 		case 'E':
@@ -284,6 +301,18 @@ init_options(int argc, char **argv)
                         } else {
                                 uperf_fatal("Please specify max bucket\n");
                         }
+			break;
+		case 'M':
+			if (optarg) {
+				options.main_thread = (unsigned int) string_to_int(optarg);
+				if (!is_cpu_allowed(options.main_thread)) {
+					uperf_fatal("Invalid CPU main thread: %u\n",
+							options.main_thread);
+				}
+			}
+			else {
+				uperf_fatal("Please specify CPU main thread\n");
+			}
 			break;
 		case 'X':
 			options.copt |= HISTORY_STATS;
