@@ -95,6 +95,7 @@ uperf_usage(char *prog)
 	"\t-i <interval>\t Collect throughput every <interval>\n"
 	"\t-P <port>\t Set the master port (defaults to 20000)\n"
 	"\t-R\t\t Emit raw (not transformed), time-stamped (ms) statistics\n"
+	"\t-q\t\t Quiet (no progress is printed to stdout during the test)\n"
 	"\t-v\t\t Verbose\n"
 	"\t-V\t\t Version\n"
 	"\t-h\t\t Print usage\n"
@@ -186,7 +187,7 @@ init_options(int argc, char **argv)
 	options.bucket_len = 1000;     /* Default: 1us Bucket length */
 	options.max_bucket = 100000;   /* Default: 100us Max bucket */
 
-	while ((ch = getopt(argc, argv, "E:epTgtfknasm:M:H:B:b:X:i:P:S:RvVh")) != EOF) {
+	while ((ch = getopt(argc, argv, "E:epTgtfknasm:M:H:B:b:X:i:P:S:RvqVh")) != EOF) {
 		switch (ch) {
 #ifdef USE_CPC
 		case 'E':
@@ -356,6 +357,9 @@ init_options(int argc, char **argv)
 			break;
 		case 'R':
 			options.copt |= RAW_STATS;
+			break;
+		case 'q':
+			options.copt |= QUIET_STATS;
 			break;
 		case 'v':
 			uperf_set_log_level(UPERF_VERBOSE);
