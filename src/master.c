@@ -88,16 +88,6 @@ move_to_core(int core_i)
 }
 
 static int
-set_fifo_prio(int prio)
-{
-        struct sched_param param;
-
-        memset(&param, 0, sizeof(param));
-        param.sched_priority = prio;
-        return sched_setscheduler(0, SCHED_FIFO, &param);
-}
-
-static int
 say_goodbye(goodbye_stat_t *total, protocol_t *p, int timeout)
 {
 	goodbye_t g;
@@ -506,9 +496,10 @@ spawn_strands_group(uperf_shm_t *shm, group_t *gp, int id)
 				uperf_error("pthread_create failed\n");
 				return (1);
 			}
-			move_to_core(options.main_thread);
 		}
 	}
+	uperf_info("Moving main thread to cpu %d...\n", options.main_thread);
+	move_to_core(options.main_thread);
 	return (0);
 }
 

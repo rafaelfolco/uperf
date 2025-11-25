@@ -86,6 +86,7 @@ uperf_usage(char *prog)
 	"\t-p\t\t Collect CPU utilization for flowops [-f assumed]\n"
 	"\t-e\t\t Collect default CPU counters for flowops [-f assumed]\n"
 	"\t-E <ev1,ev2>\t Collect CPU counters for flowops [-f assumed]\n"
+	"\t-F <priority> Set realtime FIFO priority [1-99]\n"
 	"\t-a\t\t Collect all statistics\n"
 	"\t-H <file>\t Histogram (percentiles for response times)\n"
 	"\t-b <bucket-len>\t Bucket length in us (defaults to 1 us)\n"
@@ -116,6 +117,16 @@ int is_cpu_allowed(int cpu_id) {
         return 1;
     }
     return 0;
+}
+
+static int
+set_fifo_prio(int prio)
+{
+        struct sched_param param;
+
+        memset(&param, 0, sizeof(param));
+        param.sched_priority = prio;
+        return sched_setscheduler(0, SCHED_FIFO, &param);
 }
 
 static char *proto[] = {
@@ -187,7 +198,7 @@ init_options(int argc, char **argv)
 	options.bucket_len = 1000;     /* Default: 1us Bucket length */
 	options.max_bucket = 100000;   /* Default: 100us Max bucket */
 
-	while ((ch = getopt(argc, argv, "E:epTgtfknasm:M:H:B:b:X:i:P:S:RvqVh")) != EOF) {
+	while ((ch = getopt(argc, argv, "E:epTgtfknasm:F:M:H:B:b:X:i:P:S:RvqVh")) != EOF) {
 		switch (ch) {
 #ifdef USE_CPC
 		case 'E':
@@ -342,6 +353,16 @@ init_options(int argc, char **argv)
 			if (optarg) {
 				options.master_port = (int)
 					string_to_int(optarg);
+			}
+			break;
+		case 'F':
+			if (optarg) {
+				int priority = (int)
+					string_to_int(optarg);
+				set_fifo_prio(priority);
+			}
+			else {
+				uperf_fatal("Please specify FIFO priority [1-99]\n");
 			}
 			break;
 		case 'S':
