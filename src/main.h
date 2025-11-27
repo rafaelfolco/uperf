@@ -24,6 +24,8 @@
 #define	 __MAIN_H
 #include <limits.h>			/* PATH_MAX */
 #include <stdio.h>			/* PATH_MAX */
+#include <string.h>
+#include <sched.h>
 #include "protocol.h"
 
 #define	FLOWOP_STATS		(1<<0)
@@ -81,5 +83,25 @@ typedef struct options {
 	uint64_t max_bucket;	/* max histogram bucket (in us) */
 	unsigned int main_thread;	/* cpu main thread */
 }options_t;
+
+static int
+move_to_core(int core_i)
+{
+        cpu_set_t cpus;
+
+        CPU_ZERO(&cpus);
+        CPU_SET(core_i, &cpus);
+        return sched_setaffinity(0, sizeof(cpus), &cpus);
+}
+
+static int
+set_fifo_prio(int prio)
+{
+        struct sched_param param;
+
+        memset(&param, 0, sizeof(param));
+        param.sched_priority = prio;
+        return sched_setscheduler(0, SCHED_FIFO, &param);
+}
 
 #endif /* __MAIN_H */

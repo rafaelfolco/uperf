@@ -78,16 +78,6 @@ static protocol_t *slaves[MAXSLAVES];
 static int no_slaves;
 
 static int
-move_to_core(int core_i)
-{
-        cpu_set_t cpus;
-
-        CPU_ZERO(&cpus);
-        CPU_SET(core_i, &cpus);
-        return sched_setaffinity(0, sizeof(cpus), &cpus);
-}
-
-static int
 say_goodbye(goodbye_stat_t *total, protocol_t *p, int timeout)
 {
 	goodbye_t g;

@@ -103,32 +103,6 @@ uperf_usage(char *prog)
 	"\nMore information at http://www.uperf.org\n");
 }
 
-int is_cpu_allowed(int cpu_id) {
-    cpu_set_t set;
-    CPU_ZERO(&set);
-
-    /* Gets affinity mask from the calling process (pid 0) */
-    if (sched_getaffinity(0, sizeof(set), &set) == -1) {
-        perror("sched_getaffinity failed");
-        return -1;
-    }
-
-    if (CPU_ISSET(cpu_id, &set)) {
-        return 1;
-    }
-    return 0;
-}
-
-static int
-set_fifo_prio(int prio)
-{
-        struct sched_param param;
-
-        memset(&param, 0, sizeof(param));
-        param.sched_priority = prio;
-        return sched_setscheduler(0, SCHED_FIFO, &param);
-}
-
 static char *proto[] = {
 	"Supported protocols: TCP, UDP",
 #ifdef HAVE_RDS
@@ -171,6 +145,22 @@ uperf_version()
 	(void) printf("Built on %s\n", BUILD_DATE);
 #endif
 	(void) printf("\nReport bugs to %s\n", UPERF_EMAIL_ALIAS);
+}
+
+int is_cpu_allowed(int cpu_id) {
+    cpu_set_t set;
+    CPU_ZERO(&set);
+
+    /* Gets affinity mask from the calling process (pid 0) */
+    if (sched_getaffinity(0, sizeof(set), &set) == -1) {
+        perror("sched_getaffinity failed");
+        return -1;
+    }
+
+    if (CPU_ISSET(cpu_id, &set)) {
+        return 1;
+    }
+    return 0;
 }
 
 static options_t *

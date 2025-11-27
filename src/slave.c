@@ -91,8 +91,9 @@ slave_spawn_strands(uperf_shm_t *shm, protocol_t *control)
 		}
 
 	}
+	uperf_info("Moving main thread to cpu %d...\n", options.main_thread);
+	move_to_core(options.main_thread);
 	shm->no_strands = shm->worklist->nthreads;
-
 	return (0);
 }
 
