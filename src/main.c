@@ -91,7 +91,8 @@ uperf_usage(char *prog)
 	"\t-H <file>\t Histogram (percentiles for response times)\n"
 	"\t-b <bucket-len>\t Bucket length in us (defaults to 1 us)\n"
 	"\t-B <max-bucket>\t Max bucket in us (defaults to 100 us)\n"
-	"\t-M <main-thread-cpu>\t Set main thread cpu affinity\n"
+	"\t-W <Worker-threads-cpu>\t Set Worker threads cpu affinity\n"
+	"\t-M <Main-thread-cpu>\t Set Main thread cpu affinity\n"
 	"\t-X <file>\t Collect response times\n"
 	"\t-i <interval>\t Collect throughput every <interval>\n"
 	"\t-P <port>\t Set the master port (defaults to 20000)\n"
@@ -188,7 +189,7 @@ init_options(int argc, char **argv)
 	options.bucket_len = 1000;     /* Default: 1us Bucket length */
 	options.max_bucket = 100000;   /* Default: 100us Max bucket */
 
-	while ((ch = getopt(argc, argv, "E:epTgtfknasm:F:M:H:B:b:X:i:P:S:RvqVh")) != EOF) {
+	while ((ch = getopt(argc, argv, "E:epTgtfknasm:F:W:M:H:B:b:X:i:P:S:RvqVh")) != EOF) {
 		switch (ch) {
 #ifdef USE_CPC
 		case 'E':
@@ -303,6 +304,18 @@ init_options(int argc, char **argv)
                         } else {
                                 uperf_fatal("Please specify max bucket\n");
                         }
+			break;
+		case 'W':
+			if (optarg) {
+				options.worker_thread = (unsigned int) string_to_int(optarg);
+				if (!is_cpu_allowed(options.worker_thread)) {
+					uperf_fatal("Invalid CPU worker thread(s): %u\n",
+							options.worker_thread);
+				}
+			}
+			else {
+				uperf_fatal("Please specify CPU worker thread(s)\n");
+			}
 			break;
 		case 'M':
 			if (optarg) {

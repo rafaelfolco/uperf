@@ -82,6 +82,7 @@ typedef struct options {
 	uint64_t bucket_len;	/* histogram bucket length (in us) */
 	uint64_t max_bucket;	/* max histogram bucket (in us) */
 	unsigned int main_thread;	/* cpu main thread */
+	unsigned int worker_thread;	/* cpu worker thread */
 }options_t;
 
 static int
