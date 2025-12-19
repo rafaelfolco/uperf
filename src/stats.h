@@ -93,7 +93,7 @@ typedef struct _histogram {
     uint64_t *buckets;           /* Array of counters for each bucket */
     uint64_t total_count;        /* Total samples added */
     uint64_t overflow_count;     /* Count of samples > max_bucket */
-    size_t overflow_capacity;    /* Overflow bucket capacity (dynamic allocation) */
+    uint32_t overflow_capacity;  /* Capacity (max count) of overflow bucket */
     uint64_t *overflow_samples;  /* Overflow samples */
 
     uint64_t min_val;            /* Minimum sample value */

@@ -284,8 +284,14 @@ histogram_init(strand_t *s)
     	s->histogram->sum_val = 0;
     	s->histogram->total_count = 0;
     	s->histogram->overflow_count = 0;
-        s->histogram->overflow_samples = (uint64_t *)malloc( 1 * sizeof(uint64_t));
-        s->histogram->overflow_capacity = 1;
+	/* 1GB (125 million uint64_t samples) */
+	s->histogram->overflow_capacity = 125000000;
+	size_t overflow_size = s->histogram->overflow_capacity * sizeof(uint64_t);
+	s->histogram->overflow_samples = malloc(overflow_size);
+	if (s->histogram->overflow_samples == NULL) {
+            fprintf(stderr, "Memory allocation failed! Not enough RAM.\n");
+        }
+        s->histogram->overflow_samples[0] = 0xDEADBEEF;
 }
 
 int compare_samples(const void *a, const void *b) {
@@ -316,7 +322,7 @@ get_percentile(histogram_t *h, double percentile)
     }
 
     /* overflow bucket logic (target sample is in the overflow bucket) */
-    int64_t index_needed = count_needed - cumulative_count - 1;
+    uint64_t index_needed = count_needed - cumulative_count - 1;
     if (index_needed < 0) index_needed = 0;
     if (index_needed >= h->overflow_count) index_needed = h->overflow_count - 1;
     qsort(h->overflow_samples, h->overflow_count, sizeof(uint64_t), compare_samples);
@@ -336,6 +342,7 @@ histogram_summary(strand_t *s)
                 printf("histogram is NULL\n");
                 return;
         }
+
 	fprintf(options.histogram_fd, "Histogram Summary:\n");
     	fprintf(options.histogram_fd, "  Samples   :  %"PRIu64"\n", h->total_count);
         fprintf(options.histogram_fd, "  Minimum   :  %.2f us (#%lu)\n", (double) (h->min_val / 1e3), h->min_index);
@@ -352,6 +359,10 @@ histogram_summary(strand_t *s)
 	fprintf(options.histogram_fd, "  Buckets (us):\n");
         fprintf(options.histogram_fd, "    %"PRIu64"-♾️ : %"PRIu64" (overflows)\n",
                (uint64_t) (h->bucket_size_ns * h->num_buckets / 1e3), h->overflow_count);
+	if (s->histogram->overflow_count == s->histogram->overflow_capacity) {
+	    fprintf(options.histogram_fd, "Warning: Too many samples in the Overflow bucket.\n");
+	    fprintf(options.histogram_fd, "Increase the max-bucket parameter (-B <max-bucket>).\n");
+	}
 	fprintf(options.histogram_fd, "    ...\n");
 	uint32_t max_bucket_idx = h->num_buckets - 1;
 	for (uint32_t i = max_bucket_idx; i >= 0; i--) {
@@ -390,19 +401,9 @@ histogram_record(strand_t *s, uint64_t delta)
 	}
 
 	if (delta >= s->histogram->max_bucket_ns) {
-		if (s->histogram->overflow_count >= s->histogram->overflow_capacity) {
-			/* Double the capacity to keep amortized time O(1) */
-			size_t overflow_capacity = s->histogram->overflow_capacity * 2;
-                        uint64_t *overflow_samples = (uint64_t *)realloc(s->histogram->overflow_samples,
-				overflow_capacity * sizeof(uint64_t));
-                        if (!overflow_samples) {
-                            fprintf(stderr, "Memory allocation failed!\n");
-                            return;
-                        }
-                        s->histogram->overflow_samples = overflow_samples;
-                        s->histogram->overflow_capacity = overflow_capacity;
-                }
-		s->histogram->overflow_samples[s->histogram->overflow_count++] = delta;
+	    if (s->histogram->overflow_count < s->histogram->overflow_capacity) {
+	        s->histogram->overflow_samples[s->histogram->overflow_count++] = delta;
+	    }
     	} else {
         	uint32_t index = (uint32_t)(delta / s->histogram->bucket_size_ns);
             	s->histogram->buckets[index]++;
@@ -413,6 +414,7 @@ void
 histogram_cleanup(strand_t *s)
 {
 	histogram_t *h = s->histogram;
+        free(h->overflow_samples);
         free(h->buckets);
         free(h);
 }
