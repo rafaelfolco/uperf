@@ -174,7 +174,7 @@ stats_update(int type, strand_t *s, newstats_t *stats, uint64_t size,
 			}
 			if (ENABLED_HISTOGRAM_STATS(options)) {
 				uint64_t _delta = stats->end_time - stats->time_used_start;
-				histogram_record(s, _delta);
+				histogram_record(s, _delta, stats->end_time);
 			}
 			return (err);
 		}
@@ -346,7 +346,8 @@ histogram_summary(strand_t *s)
 	fprintf(options.histogram_fd, "Histogram Summary:\n");
     	fprintf(options.histogram_fd, "  Samples   :  %"PRIu64"\n", h->total_count);
         fprintf(options.histogram_fd, "  Minimum   :  %.2f us (#%lu)\n", (double) (h->min_val / 1e3), h->min_index);
-        fprintf(options.histogram_fd, "  Maximum   :  %.2f us (#%lu)\n", (double) (h->max_val / 1e3), h->max_index);
+        fprintf(options.histogram_fd, "  Maximum   :  %.2f us (#%lu) | timestamp: %lu\n", (double) (h->max_val / 1e3),
+                h->max_index, h->max_timestamp);
         fprintf(options.histogram_fd, "  Average   :  %.2f us\n", (double) (h->sum_val / h->total_count) / 1e3);
     	fprintf(options.histogram_fd, "  Percentiles (us):\n");
     	fprintf(options.histogram_fd, "    50th    :  %lu (Median)\n", get_percentile(h, 0.50));
@@ -386,7 +387,7 @@ histogram_summary(strand_t *s)
 }
 
 void
-histogram_record(strand_t *s, uint64_t delta)
+histogram_record(strand_t *s, uint64_t delta, uint64_t ts)
 {
 	s->histogram->total_count++;
 	s->histogram->sum_val += delta;
@@ -397,6 +398,7 @@ histogram_record(strand_t *s, uint64_t delta)
 	}
 	if ( delta > s->histogram->max_val ) {
 	    s->histogram->max_val = delta;
+	    s->histogram->max_timestamp = ts;
 	    s->histogram->max_index = s->histogram->total_count;
 	}
 

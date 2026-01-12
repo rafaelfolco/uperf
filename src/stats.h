@@ -102,6 +102,7 @@ typedef struct _histogram {
 
     uint64_t min_index;          /* Index # of min sample */
     uint64_t max_index;          /* Index # of max sample */
+    uint64_t max_timestamp;      /* Timestamp of max sample */
     
     uint32_t num_buckets;        /* Configured number of buckets */
     uint32_t bucket_size_ns;     /* Configured size of each bucket (in ns) */
@@ -110,7 +111,7 @@ typedef struct _histogram {
 
 void histogram_init(strand_t *s);
 void histogram_summary(strand_t *s);
-void histogram_record(strand_t *, uint64_t);
+void histogram_record(strand_t *, uint64_t, uint64_t);
 void histogram_cleanup(strand_t *s);
 
 static uint64_t get_percentile(histogram_t *h, double);
