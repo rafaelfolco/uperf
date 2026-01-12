@@ -446,6 +446,9 @@ master_init(workorder_t *w)
 		return (NULL);
 	}
 
+	uperf_info("Moving main thread to cpu %d...\n", options.main_thread);
+	move_to_core(options.main_thread);
+
 	return (shm);
 }
 
@@ -488,8 +491,6 @@ spawn_strands_group(uperf_shm_t *shm, group_t *gp, int id)
 			}
 		}
 	}
-	uperf_info("Moving main thread to cpu %d...\n", options.main_thread);
-	move_to_core(options.main_thread);
 	return (0);
 }
 

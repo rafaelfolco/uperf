@@ -309,7 +309,7 @@ init_options(int argc, char **argv)
 			if (optarg) {
 				options.worker_thread = (unsigned int) string_to_int(optarg);
 				if (!is_cpu_allowed(options.worker_thread)) {
-					uperf_fatal("Invalid CPU worker thread(s): %u\n",
+					uperf_warn("Invalid CPU worker thread(s): %u\n",
 							options.worker_thread);
 				}
 			}
@@ -321,7 +321,7 @@ init_options(int argc, char **argv)
 			if (optarg) {
 				options.main_thread = (unsigned int) string_to_int(optarg);
 				if (!is_cpu_allowed(options.main_thread)) {
-					uperf_fatal("Invalid CPU main thread: %u\n",
+					uperf_warn("Invalid CPU main thread: %u\n",
 							options.main_thread);
 				}
 			}

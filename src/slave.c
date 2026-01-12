@@ -91,8 +91,6 @@ slave_spawn_strands(uperf_shm_t *shm, protocol_t *control)
 		}
 
 	}
-	uperf_info("Moving main thread to cpu %d...\n", options.main_thread);
-	move_to_core(options.main_thread);
 	shm->no_strands = shm->worklist->nthreads;
 	return (0);
 }
@@ -261,7 +259,7 @@ slave_init(protocol_t *p)
 	global_shm = shm;
 
 	free(shm_tmp);
-
+	
 	return (shm);
 }
 /*
@@ -417,6 +415,9 @@ slave()
 	protocol_t	*slave_conn;
 
 	uperf_log_init(&log);
+
+	uperf_info("Moving *slave* Main thread to cpu %d...\n", options.main_thread);
+        move_to_core(options.main_thread);
 
 	if (protocol_init(NULL) == UPERF_FAILURE) {
 		return (-1);
