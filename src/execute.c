@@ -77,6 +77,12 @@ flowop_execute(strand_t *sp, flowop_t *fp)
 		} else if (ret < 0)
 			break;
 	}
+
+	/* NOTE: DO NOT count this transaction if duration expired */
+	if (SIGNALLED(sp)) {
+                return (UPERF_DURATION_EXPIRED);
+        }
+	
 	save_errno = errno;
 	STATS_RECORD_FLOWOP(FLOWOP_END, sp, FLOWOP_STAT(fp), ret, i);
 	if ((save_errno == EINTR) || SIGNALLED(sp)) {
