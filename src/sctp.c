@@ -52,6 +52,12 @@ set_sctp_options(int fd, int family, flowop_options_t *f)
 	if (f == NULL) {
 		return;
 	}
+
+	if (f->busy_poll > 0) {
+		(void) generic_set_socket_busy_poll(fd, f->busy_poll);
+		(void) generic_verify_socket_busy_poll(fd, f->busy_poll);
+	}
+
 	if (f->wndsz > 0) {
 		generic_set_socket_buffer(fd, f->wndsz);
 		generic_verify_socket_buffer(fd, f->wndsz);

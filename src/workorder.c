@@ -297,6 +297,7 @@ group_bitswap(group_t *grp)
 			fo->port = BSWAP_32(fo->port);
 			fo->flag = BSWAP_32(fo->flag);
 			fo->nfiles = BSWAP_32(fo->nfiles);
+			fo->busy_poll = BSWAP_32(fo->busy_poll);
 			fo->duration = BSWAP_64(fo->duration);
 			fo->wndsz = BSWAP_64(fo->wndsz);
 			fo->count = BSWAP_64(fo->count);

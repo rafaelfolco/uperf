@@ -98,6 +98,7 @@ generic_socket(protocol_t *p, int domain, int protocol)
 		ulog_err("%s: Cannot create socket", protocol_to_str(p->type));
 		return (UPERF_FAILURE);
 	}
+
 	return (UPERF_SUCCESS);
 }
 
@@ -196,6 +197,40 @@ generic_verify_socket_buffer(int fd, int wndsz)
 		          "Recv buffer", nwsz/1024.0, wndsz/1024.0);
 	} else {
 		uperf_info("Set Recv buffer size to %.2fKB\n", nwsz/1024.0);
+	}
+
+	return (UPERF_SUCCESS);
+}
+
+int
+generic_set_socket_busy_poll(int fd, int value)
+{
+	if (value == 0)
+		return (UPERF_SUCCESS);
+
+	if (setsockopt(fd, SOL_SOCKET, SO_BUSY_POLL, (char *)&value,
+		       sizeof(value)) != 0) {
+		ulog_warn("Cannot set SO_BUSY_POLL");
+	}
+
+	return (UPERF_SUCCESS);
+}
+
+int
+generic_verify_socket_busy_poll(int fd, int value)
+{
+        int nwval;
+        socklen_t len;
+
+	if (value == 0)
+		return (UPERF_SUCCESS);
+
+	len = sizeof(value);
+	nwval = -1;
+
+	if (getsockopt(fd, SOL_SOCKET, SO_BUSY_POLL, (char *)&nwval,
+		       &len) != 0) {
+		ulog_warn("Cannot get SO_BUSY_POLL");
 	}
 
 	return (UPERF_SUCCESS);
@@ -439,6 +474,7 @@ set_tcp_options(int fd, flowop_options_t *f)
 	 * sizes after the connect and listen
 	 */
 	int wndsz;
+	int busy_poll;
 
 	if (!f) {
 		/*
@@ -447,11 +483,18 @@ set_tcp_options(int fd, flowop_options_t *f)
 		 * size, it autotunes.
 		 */
 		wndsz = 0;
+		busy_poll = 0;
 	} else {
 		wndsz = f->wndsz;
+		busy_poll = f->busy_poll;
 	}
+
 	(void) generic_set_socket_buffer(fd, wndsz);
 	(void) generic_verify_socket_buffer(fd, wndsz);
+
+	/* busy_poll */
+	(void) generic_set_socket_busy_poll(fd, busy_poll);
+	(void) generic_verify_socket_busy_poll(fd, busy_poll);
 
 	if (f && (FO_TCP_NODELAY(f))) {
 		int nodelay = 1;

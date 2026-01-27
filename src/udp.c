@@ -69,6 +69,11 @@ set_udp_options(int fd, flowop_options_t *f)
 	if (f == NULL)
 		return (0);
 
+	if (f->busy_poll > 0) {
+		(void) generic_set_socket_busy_poll(fd, f->busy_poll);
+		(void) generic_verify_socket_busy_poll(fd, f->busy_poll);
+	}
+
 	if (f->wndsz > 0) {
 		(void) generic_set_socket_buffer(fd, f->wndsz);
 		(void) generic_verify_socket_buffer(fd, f->wndsz);

@@ -525,6 +525,8 @@ parse_option(char *option, flowop_t *flowop)
 			strlcpy(flowop->options.localhost, value, MAXHOSTNAME);
 		} else if (strcasecmp(key, "wndsz") == 0) {
 			flowop->options.wndsz = string2int(value);
+		} else if (strcasecmp(key, "busy_poll") == 0) {
+			flowop->options.busy_poll = string2int(value);
 		} else if (strcasecmp(key, "timeout") == 0) {
 			flowop->options.poll_timeout = string2nsec(value);
 			if (flowop->options.poll_timeout == 0) {
