@@ -212,6 +212,16 @@ generic_set_socket_busy_poll(int fd, int value)
 		       sizeof(value)) != 0) {
 		ulog_warn("Cannot set SO_BUSY_POLL");
 	}
+	int budget = 1;
+	if (setsockopt(fd, SOL_SOCKET, SO_BUSY_POLL_BUDGET, (char *)&budget,
+		       sizeof(budget)) != 0) {
+		ulog_warn("Cannot set SO_BUSY_POLL_BUDGET");
+	}
+	int prefer = 1;
+        if (setsockopt(fd, SOL_SOCKET, SO_PREFER_BUSY_POLL, (char *)&prefer,
+                       sizeof(prefer)) != 0) {
+                ulog_warn("Cannot set SO_PREFER_BUSY_POLL");
+        }
 
 	return (UPERF_SUCCESS);
 }
