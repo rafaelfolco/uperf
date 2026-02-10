@@ -66,6 +66,11 @@ flowop_execute(strand_t *sp, flowop_t *fp)
 	int ret = 0;
 	int save_errno;
 
+	/* NOTE: DO NOT count this transaction if duration expired */
+	if (SIGNALLED(sp)) {
+                return (UPERF_DURATION_EXPIRED);
+        }
+
 	STATS_RECORD_FLOWOP(FLOWOP_BEGIN, sp, FLOWOP_STAT(fp), 0, 0);
 	for (i = 0; i < fp->options.count; i++) {
 		if (SIGNALLED(sp)) {
