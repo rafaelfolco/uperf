@@ -441,8 +441,13 @@ strand_run(void *sp)
 	assert(shm);
 	assert(s);
 
-	uperf_info("Moving Worker thread to cpu %d...\n", options.worker_thread);
-	move_to_core(options.worker_thread);
+	int t_cpu = get_next_cpu();
+        if (t_cpu != -1) {
+            move_to_core(t_cpu);
+            uperf_info("Thread %lu pinned to CPU %d\n", pthread_self(), t_cpu);
+        } else {
+	    uperf_info("Cannot get a CPU for this thread. Will ontinue unpinned.");
+        }
 
 	if (shm->global_error > 0) {
 		return (NULL);
