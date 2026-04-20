@@ -315,7 +315,11 @@ init_options(int argc, char **argv)
                         if (optarg) {
                                 (void) strlcpy(options.hfile, optarg,
                                         sizeof (options.hfile));
-                                options.histogram_fd = fopen(optarg, "w");
+								if (strcmp(optarg, "stdout") == 0) {
+									options.histogram_fd = stdout;
+								} else {
+									options.histogram_fd = fopen(optarg, "w");
+								}
                                 if (options.histogram_fd == NULL)
                                         uperf_fatal("Cannot open histogram file\n");
                         } else {
