@@ -348,8 +348,12 @@ histogram_summary(strand_t *s)
         fprintf(options.histogram_fd, "  Minimum   :  %.2f us (#%lu)\n", (double) (h->min_val / 1e3), h->min_index);
         fprintf(options.histogram_fd, "  Maximum   :  %.2f us (#%lu) | timestamp: %lu\n", (double) (h->max_val / 1e3),
                 h->max_index, h->max_timestamp);
-        fprintf(options.histogram_fd, "  Average   :  %.2f us\n", (double) (h->sum_val / h->total_count) / 1e3);
-    	fprintf(options.histogram_fd, "  Percentiles (us):\n");
+		if (h->total_count > 0) {
+			fprintf(options.histogram_fd, "  Average   :  %.2f us\n", (double) (h->sum_val / h->total_count) / 1e3);
+		} else {
+			fprintf(options.histogram_fd, "  Average   :  NONE us\n");
+		}
+		fprintf(options.histogram_fd, "  Percentiles (us):\n");
     	fprintf(options.histogram_fd, "    50th    :  %lu (Median)\n", get_percentile(h, 0.50));
     	fprintf(options.histogram_fd, "    90th    :  %lu\n", get_percentile(h, 0.90));
     	fprintf(options.histogram_fd, "    95th    :  %lu\n", get_percentile(h, 0.95));
