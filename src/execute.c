@@ -35,6 +35,7 @@
 #include "strand.h"
 #include "shm.h"
 #include "rate.h"
+#include "stats.h"
 
 extern options_t options;
 typedef int (*generic_execute_func)(strand_t *, void *);
@@ -193,6 +194,8 @@ txn_execute(strand_t *strand, txn_t *txn)
 	int error;
 
 	if (txn->duration > 0) {
+		if (ENABLED_HISTOGRAM_STATS(options) && strand->histogram)
+			histogram_reset(strand);
 		error = txn_duration(strand, txn);
 	} else {
 		error = txn_iterations(strand, txn);

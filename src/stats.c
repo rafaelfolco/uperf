@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <inttypes.h>
 #include "uperf.h"
@@ -292,6 +293,24 @@ histogram_init(strand_t *s)
             fprintf(stderr, "Memory allocation failed! Not enough RAM.\n");
         }
         s->histogram->overflow_samples[0] = 0xDEADBEEF;
+}
+
+void
+histogram_reset(strand_t *s)
+{
+	histogram_t *h = s->histogram;
+	if (h == NULL)
+		return;
+	memset(h->buckets, 0, h->num_buckets * sizeof(uint64_t));
+	h->total_count = 0;
+	h->overflow_count = 0;
+	h->min_val = 1e9;
+	h->min_index = 0;
+	h->max_val = 0;
+	h->max_index = 0;
+	h->max_timestamp = 0;
+	h->sum_val = 0;
+	h->rtt_start_time = 0;
 }
 
 int compare_samples(const void *a, const void *b) {

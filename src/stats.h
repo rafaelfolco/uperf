@@ -112,6 +112,7 @@ typedef struct _histogram {
 }histogram_t;
 
 void histogram_init(strand_t *s);
+void histogram_reset(strand_t *s);
 void histogram_summary(strand_t *s);
 void histogram_record(strand_t *, uint64_t, uint64_t);
 void histogram_cleanup(strand_t *s);
